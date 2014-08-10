@@ -1,18 +1,21 @@
-# SWI-Prolog based chat server
+# SWI-Prolog based shared whiteboard
 
-This repository provides a demonstration for   using  the recently added
-websocket support for realising a  chat  server.   To  use  it, you must
+Based on Jan Wielemaker's swi-Prolog chat server
+
+https://github.com/JanWielemaker/swi-chat
+
+This repository provides a minimal whiteboard drawing solution.   
+To  use  it, you must
 install *[SWI-Prolog](http://www.swi-prolog.org) 7.1.19 or later*. Then,
-you can load `demo_chat.pl` and run
+you can load `demo_whiteboard.pl` and run
 
     ?- server.
 
-This will start the server at port 3050.
+This will start the server at port 3080.
 
 ## Status
 
-The chatserver itself is really simple.   Tested with the server running
-on Linux using firefox and chromium as clients.
+
 
 ## Future
 

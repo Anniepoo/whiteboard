@@ -27,7 +27,7 @@
     the GNU General Public License.
 */
 
-:- module(chat_server,
+:- module(whiteboard_server,
 	  [ server/0,
 	    server/1
 	  ]).
@@ -37,32 +37,27 @@
 :- use_module(library(http/html_write)).
 :- use_module(library(http/js_write)).
 :- use_module(library(debug)).
+:- use_module(library(http/http_server_files)).
 
 :- use_module(chatroom).
 
 :- debug(websocket).
 
-/** <module> A scalable websocket based chat server in SWI-Prolog
+/** <module> A scalable websocket based whiteboard server in SWI-Prolog
 
-Chat servers are an example of   services  that require mixed initiative
-and may be used to serve many connections. One way to implement is using
-long-polling: the browser asks for events   from  the server. The server
-waits until there is an event or  it   times  out  after -say- 1 minute,
-after which the server replies there are  no events and the client tries
-again. The long polling structure can   be implemented in the SWI-Prolog
-server architecture, but it is  rather   expensive  because it implies a
-Prolog thread for each blocking call.
+Logic languages have a natural affinity to problems best expressed
+by 'ball and circle' graphs or 'arrows between boxes' diagrams.
 
-This demo application implements  a   chatroom  using  _websockets_. The
-implementation uses chatroom.pl, which bundles   the  responsibility for
-multiple  websockets  in  a  small  number   of  threads  by  using  I/O
-multiplexing based on wait_for_input/3. As a   user of chatroom.pl, life
-is fairly straighforward:
+This is a small shared whiteboard application for collaboratively
+drawing digraph diagrams. It's based on Jan Wielemaker's =|chatroom.pl|=
+demo available at https://github.com/JanWielemaker/swi-chat  .
 
-  - Chreate a chatroom using chatroom_create/3 and a thread that
-    listens to chat events and broadcasts the changes.
+ @tbd  Write this up after you know where the API is going
 
-  - Serve a web page that provides the chat frontend.  The frontend
+  - Create a whiteboardroom using chatroom_create/3 and a thread that
+    listens to whiteboard events and broadcasts the changes.
+
+  - Serve a web page that provides the whiteboard frontend.  The frontend
     contains JavaScript that establishes a websocket on /chat.  If
     a websocket is obtained, hand it to to the room using
     chatroom_add/2
@@ -70,15 +65,16 @@ is fairly straighforward:
 
 % be a bit chatty.  Comment for silent operation.
 :- debug(chat).
+:- debug(whiteboard).
 
 %%	server is det.
 %%	server(?Port) is det.
 %
 %	Create the chat room and start the   server. The default port is
-%	3050.
+%	3080.
 
 server :-
-	server(3050).
+	server(3080).
 
 server(Port) :-
 	(   debugging(chat)
@@ -89,13 +85,20 @@ server(Port) :-
 	http_server(http_dispatch, [port(Port)]),
 	format(user_error, 'Started server at http://localhost:~d/~n', [Port]).
 
+http:location(img, root(img), []).
+http:location(js, root(js), []).
+http:location(css, root(css), []).
+user:file_search_path(img, './img').
+user:file_search_path(js, './js').
+user:file_search_path(css, './css').
+
 % setup the HTTP location. The  first   (/)  loads  the application. The
 % loaded application will create  a   websocket  using  /chat. Normally,
 % http_upgrade_to_websocket/3 runs call(Goal, WebSocket)  and closes the
 % connection if Goal terminates. Here, we use guarded(false) to tell the
 % server we will take responsibility for the websocket.
 
-:- http_handler(root(.),    chat_page,      []).
+:- http_handler(root(.),    whiteboard_page,      []).
 :- http_handler(root(chat),
 		http_upgrade_to_websocket(
 		    accept_chat,
@@ -105,31 +108,41 @@ server(Port) :-
 		[ id(chat_websocket)
 		]).
 
-chat_page(_Request) :-
-	reply_html_page(
-	    title('SWI-Prolog chat demo'),
-	    \chat_page).
+:- http_handler(root(img),
+		serve_files_in_directory(img), [prefix]).
+:- http_handler(root(js),
+		serve_files_in_directory(js), [prefix]).
+:- http_handler(root(css),
+		serve_files_in_directory(css), [prefix]).
 
-%%	chat_page//
+whiteboard_page(_Request) :-
+	reply_html_page(
+	    \whiteboard_head,
+	    \whiteboard_body).
+
+whiteboard_head -->
+	html([ title('Collaborative Diagram Editor'),
+	       link([rel(stylesheet), href('/css/whiteboard.css')], [])
+	     ]).
+
+%%	whiteboard_page//
 %
 %	Generate the web page. To  keep   everything  compact  we do the
 %	styling inline.
 
-chat_page -->
-	html([ h1('YAWSBCR: Yet Another ...'),
-	       div([ id(chat),
-		     style('height: 150px; overflow-y:scroll;'+
-			   'border: solid 1px black; padding:5px')
-		   ], []),
-	       input([ placeholder('Type a message and hit RETURN'),
-		       id(input),
-		       onkeypress('handleInput(event)'),
-		       style('width:100%; border:solid 1px black;'+
-			     'padding: 5px; box-sizing: border-box')
-		     ], []),
-	       div([ id(error),
-		     style('color: red')
-		   ], [])
+whiteboard_body -->
+	html([ h1('A Collaborative Diagram Editor'),
+	       div(id(whiteboard), [
+		   div([class(componentbar)], [
+			   img([class(selected), id(rect_tool), src('img/rect.png')],[]),
+			   img([id(oval_tool), src('img/oval.png')]),
+			   img([id(diamond_tool), src('img/diamond.png')])
+		       ]),
+		   canvas(class(drawarea), [])
+		   ]),
+	       p(id(msg), 'message area'),
+	       p(id(output), 'output area'),
+	       script(src('/js/jquery-2.0.3.min.js'), [])
 	     ]),
 	script.
 
@@ -142,39 +155,106 @@ script -->
 	{ http_link_to_id(chat_websocket, [], WebSocketURL)
 	},
 	js_script({|javascript(WebSocketURL)||
-function handleInput(e) {
-  if ( !e ) e = window.event;  // IE
-  if ( e.keyCode == 13 ) {
-    var msg = document.getElementById("input").value;
-    sendChat(msg);
-    document.getElementById("input").value = "";
-  }
-}
 
-var connection;
+$(document).ready(function() {
 
-function openWebSocket() {
-  connection = new WebSocket("ws://"+window.location.host+WebSocketURL,
+    var whiteboard = {
+	pengine: undefined,
+
+	currentTool: "rect",
+
+	connection: undefined,
+
+	writeln: function(string) {
+		$('#output').append(string + "<br />")
+	},
+
+	unchoose_tools: function() {
+		$("#whiteboard .componentbar IMG").removeClass("selected");
+	},
+
+	newElement: function(e) {
+			$("#msg").text("down " + e.clientX + " " + e.clientY);
+	},
+
+	newElementMoveOrDrag: function(e) {
+		if (mouseDownCount === 0)
+			return;
+
+		var x = e.offsetX;
+		var y = e.offsetY;
+
+		$("#msg").text("drag " + x + " " + y + " " + e.button);
+	},
+
+	newElementCommit: function(e) {
+		$("#msg").text("commit " + e.clientX + " " + e.clientY);
+		whiteboard.sendChat("commit(" + whiteboard.currentTool + ", " + e.clientX +
+		                ", " + e.clientY + ")");
+	},
+
+	openWebSocket: function() {
+	      connection = new WebSocket("ws://"+window.location.host+WebSocketURL,
 			     ['echo']);
 
-  connection.onerror = function (error) {
-    console.log('WebSocket Error ' + error);
-  };
+	      connection.onerror = function (error) {
+                  console.log('WebSocket Error ' + error);
+              };
 
-  connection.onmessage = function (e) {
-    var chat = document.getElementById("chat");
-    var msg = document.createElement("div");
-    msg.appendChild(document.createTextNode(e.data));
-    var child = chat.appendChild(msg);
-    child.scrollIntoView(false);
-  };
+              connection.onmessage = function (e) {  // TODO
+		console.log(e.data);
+						     /*
+                  var chat = document.getElementById("chat");
+                  var msg = document.createElement("div");
+                  msg.appendChild(document.createTextNode(e.data));
+                  var child = chat.appendChild(msg);
+                  child.scrollIntoView(false); */
+	      };
+	},
+
+        sendChat: function(msg) {
+              connection.send(msg);
+        }
+    };
+
+    $("#rect_tool").on("mouseup", function() {
+	   whiteboard.unchoose_tools();
+	   whiteboard.currentTool = "rect";
+	   $("#rect_tool").addClass("selected");
+    });
+    $("#oval_tool").on("mouseup", function() {
+	   whiteboard.unchoose_tools();
+	   whiteboard.currentTool = "oval";
+	   $("#oval_tool").addClass("selected");
+    });
+    $("#diamond_tool").on("mouseup", function() {
+	   whiteboard.unchoose_tools();
+	   whiteboard.currentTool = "diamond";
+	   $("#diamond_tool").addClass("selected");
+    });
+
+    $("#whiteboard .drawarea").on(
+	      {	"mousedown": whiteboard.newElement,
+		"mousemove": whiteboard.newElementMoveOrDrag,
+		"mouseup": whiteboard.newElementCommit});
+
+    whiteboard.openWebSocket();
+});
+
+// window.addEventListener("DOMContentLoaded", openWebSocket, false);
+
+var mouseDown = [0, 0, 0, 0, 0, 0, 0, 0, 0],
+    mouseDownCount = 0;
+document.body.onmousedown = function(evt) {
+  ++mouseDown[evt.button];
+  ++mouseDownCount;
+}
+document.body.onmouseup = function(evt) {
+  --mouseDown[evt.button];
+  --mouseDownCount;
 }
 
-function sendChat(msg) {
-  connection.send(msg);
-}
 
-window.addEventListener("DOMContentLoaded", openWebSocket, false);
 		  |}).
 
 
