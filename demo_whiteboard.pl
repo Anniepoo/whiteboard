@@ -27,7 +27,7 @@
     the GNU General Public License.
 */
 
-:- module(whiteboard_server,
+:- module(demo_whiteboard,
 	  [ server/0,
 	    server/1
 	  ]).
@@ -38,6 +38,9 @@
 :- use_module(library(http/js_write)).
 :- use_module(library(debug)).
 :- use_module(library(http/http_server_files)).
+:- use_module(library(http/json)).
+:- use_module(library(http/http_path)).
+:- use_module(library(http/html_head)).
 
 :- use_module(chatroom).
 
@@ -117,32 +120,35 @@ user:file_search_path(css, './css').
 
 whiteboard_page(_Request) :-
 	reply_html_page(
-	    \whiteboard_head,
+	    title('Collaborative Diagram Editor'),
 	    \whiteboard_body).
 
-whiteboard_head -->
-	html([ title('Collaborative Diagram Editor'),
-	       link([rel(stylesheet), href('/css/whiteboard.css')], [])
-	     ]).
-
-%%	whiteboard_page//
+%%	whiteboard_body//
 %
 %	Generate the web page. To  keep   everything  compact  we do the
 %	styling inline.
 
 whiteboard_body -->
+	{
+           http_absolute_location(img('rect.png'), RectLoc, []),
+	   http_absolute_location(img('oval.png'), OvalLoc, []),
+           http_absolute_location(img('diamond.png'), DiamondLoc, [])
+        },
+	html_requires(css('whiteboard.css')),
+	html_requires(js('jquery-2.0.3.min.js')),
 	html([ h1('A Collaborative Diagram Editor'),
 	       div(id(whiteboard), [
 		   div([class(componentbar)], [
-			   img([class(selected), id(rect_tool), src('img/rect.png')],[]),
-			   img([id(oval_tool), src('img/oval.png')]),
-			   img([id(diamond_tool), src('img/diamond.png')])
+			   img([id(rect_tool), src(RectLoc)],[]),
+			   img([class(selected), id(oval_tool), src(OvalLoc)]),
+			   img([id(diamond_tool), src(DiamondLoc)])
 		       ]),
-		   canvas(class(drawarea), [])
+		   canvas([class(drawarea),
+			   width('1000'), height('612')], [])
+		       % http://stackoverflow.com/questions/17034795/html-canvas-scale
 		   ]),
 	       p(id(msg), 'message area'),
-	       p(id(output), 'output area'),
-	       script(src('/js/jquery-2.0.3.min.js'), [])
+	       p(id(output), 'output area')
 	     ]),
 	script.
 
@@ -155,13 +161,14 @@ script -->
 	{ http_link_to_id(chat_websocket, [], WebSocketURL)
 	},
 	js_script({|javascript(WebSocketURL)||
+var whiteboard ;
 
 $(document).ready(function() {
 
-    var whiteboard = {
+    whiteboard = {
 	pengine: undefined,
 
-	currentTool: "rect",
+	currentTool: "oval",
 
 	connection: undefined,
 
@@ -188,27 +195,54 @@ $(document).ready(function() {
 	},
 
 	newElementCommit: function(e) {
-		$("#msg").text("commit " + e.clientX + " " + e.clientY);
-		whiteboard.sendChat("commit(" + whiteboard.currentTool + ", " + e.clientX +
-		                ", " + e.clientY + ")");
+		$("#msg").text("commit " + e.offsetX + " " + e.offsetY);
+		whiteboard.sendChat("commit(" + whiteboard.currentTool + ", " + e.offsetX +
+		                ", " + e.offsetY + ")");
 	},
 
 	openWebSocket: function() {
-	      connection = new WebSocket("ws://"+window.location.host+WebSocketURL,
+	      connection = new WebSocket("ws://"+
+				window.location.host+WebSocketURL,
 			     ['echo']);
 
 	      connection.onerror = function (error) {
                   console.log('WebSocket Error ' + error);
               };
 
-              connection.onmessage = function (e) {  // TODO
+              connection.onmessage = function (e) {
 		console.log(e.data);
-						     /*
-                  var chat = document.getElementById("chat");
-                  var msg = document.createElement("div");
-                  msg.appendChild(document.createTextNode(e.data));
-                  var child = chat.appendChild(msg);
-                  child.scrollIntoView(false); */
+		var data = eval('(' + e.data + ')');
+		var cmd = data.args[0];
+		var x = data.args[1];
+		var y = data.args[2];
+		var canvas = $("#whiteboard .drawarea").get(0);
+                var context = canvas.getContext('2d');
+
+                context.setTransform(1, 0, 0, 1, 0, 0);
+                context.beginPath();
+		switch (cmd) {
+	        case  "rect":
+			   context.rect(x-50, y-37.5, 100, 75);
+			   break;
+	        case  "oval":
+			   context.arc(x, y, 37.5, 0, Math.PI * 2);
+			   break;
+		case  "diamond":
+			   context.moveTo(x-50, y);
+			   context.lineTo(x, y-37.5);
+			   context.lineTo(x+50,y);
+			   context.lineTo(x, y+37.5);
+			   context.closePath();
+			   break;
+		default:
+			   break;
+		}
+
+                context.fillStyle = 'yellow';
+                context.fill();
+                context.lineWidth = 3;
+                context.strokeStyle = 'black';
+                context.stroke();
 	      };
 	},
 
@@ -241,8 +275,6 @@ $(document).ready(function() {
     whiteboard.openWebSocket();
 });
 
-// window.addEventListener("DOMContentLoaded", openWebSocket, false);
-
 var mouseDown = [0, 0, 0, 0, 0, 0, 0, 0, 0],
     mouseDownCount = 0;
 document.body.onmousedown = function(evt) {
@@ -253,14 +285,7 @@ document.body.onmouseup = function(evt) {
   --mouseDown[evt.button];
   --mouseDownCount;
 }
-
-
 		  |}).
-
-
-:- dynamic
-	chat_control/2,				% Pipe, Queue
-	utterance/1.				% Message
 
 %%	accept_chat(+WebSocket) is det.
 %
@@ -296,9 +321,14 @@ chatroom(Room) :-
 	chatroom(Room).
 
 handle_message(Message, Room) :-
-	websocket{opcode:text} :< Message, !,
-	assertz(utterance(Message)),
-	chatroom_broadcast(Room.name, Message).
+	websocket{opcode:text, data:String} :< Message, !,
+	read_term_from_atom(String, Term, []),
+	term_to_json(Term, JSON),
+	debug(whiteboard, 'JSON ~w', [JSON]),
+	atom_json_term(TextJSON, JSON, [as(atom)]),
+	debug(whiteboard, 'TextJSON ~w', [TextJSON]),
+	assertz(utterance(TextJSON)),
+	chatroom_broadcast(Room.name, Message.put(data, TextJSON)).
 handle_message(Message, _Room) :-
 	chatroom{joined:Id} :< Message, !,
 	assertz(visitor(Id)),

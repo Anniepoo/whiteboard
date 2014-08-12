@@ -17,7 +17,9 @@ This will start the server at port 3080.
 
 
 
-## Future
+## chatroom.pl Status
 
-The library chatroom.pl is probably going to   end  up as a core library
-and the demo program will than be added as a demo application.
+The library chatroom.pl is probably going to   end  up as a SWI-Prolog core library 
+(per Jan), so I'm trying to avoid modifying it.
+
+
