@@ -38,7 +38,6 @@
 :- use_module(library(http/js_write)).
 :- use_module(library(debug)).
 :- use_module(library(http/http_server_files)).
-:- use_module(library(http/json)).
 :- use_module(library(http/http_path)).
 :- use_module(library(http/html_head)).
 
@@ -177,20 +176,19 @@ $(document).ready(function() {
 %	loop. In this case however,  we tell http_upgrade_to_websocket/3
 %	that we will take responsibility for   the websocket and we hand
 %	it to the chat room.
+%
+%	diagram_hub_room is the name of the chatroom
 
 accept_chat(WebSocket) :-
-	chatroom_add(chat, WebSocket, _Id).
+	chatroom_add(diagram_hub_room, WebSocket, _Id).
 
 %%	create_chat_room
 %
 %	Create our actual chat room.
 
-:- dynamic
-	utterance/1,			% messages
-	visitor/1.			% joined visitors
 
 create_chat_room :-
-	chatroom_create(chat, Room, _{}),
+	chatroom_create(diagram_hub_room, Room, _{}),
 	thread_create(chatroom(Room), _, [alias(chatroom)]).
 
 %%	chatroom(+Room)
@@ -202,23 +200,3 @@ chatroom(Room) :-
 	thread_get_message(Room.queues.event, Message),
 	handle_message(Message, Room),
 	chatroom(Room).
-
-handle_message(Message, Room) :-
-	websocket{opcode:text, data:String} :< Message, !,
-	read_term_from_atom(String, Term, []),
-	term_to_json(Term, JSON),
-	debug(diagrammer, 'JSON ~w', [JSON]),
-	atom_json_term(TextJSON, JSON, [as(atom)]),
-	debug(diagrammer, 'TextJSON ~w', [TextJSON]),
-	assertz(utterance(TextJSON)),
-	chatroom_broadcast(Room.name, Message.put(data, TextJSON)).
-handle_message(Message, _Room) :-
-	chatroom{joined:Id} :< Message, !,
-	assertz(visitor(Id)),
-	forall(utterance(Utterance),
-	       chatroom_send(Id, text(Utterance))).
-handle_message(Message, _Room) :-
-	chatroom{left:Id} :< Message, !,
-	retractall(visitor(Id)).
-handle_message(Message, _Room) :-
-	debug(chat, 'Ignoring message ~p', [Message]).
