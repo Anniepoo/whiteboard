@@ -1,7 +1,7 @@
 /*  Part of SWI-Prolog
 
-    Author:        Jan Wielemaker
-    E-mail:        J.Wielemaker@cs.vu.nl
+    Author:        Jan Wielemaker, Anne Ogborn
+    E-mail:        aogborn@uh.edu
     WWW:           http://www.swi-prolog.org
     Copyright (C): 2014, VU University Amsterdam
 
@@ -27,7 +27,7 @@
     the GNU General Public License.
 */
 
-:- module(demo_whiteboard,
+:- module(demo_diagrammer,
 	  [ server/0,
 	    server/1
 	  ]).
@@ -46,21 +46,21 @@
 
 :- debug(websocket).
 
-/** <module> A scalable websocket based whiteboard server in SWI-Prolog
+/** <module> Demo of scalable websocket based diagrammer server in SWI-Prolog
 
 Logic languages have a natural affinity to problems best expressed
 by 'ball and circle' graphs or 'arrows between boxes' diagrams.
 
-This is a small shared whiteboard application for collaboratively
+This is a small shared diagrammer application for collaboratively
 drawing digraph diagrams. It's based on Jan Wielemaker's =|chatroom.pl|=
 demo available at https://github.com/JanWielemaker/swi-chat  .
 
  @tbd  Write this up after you know where the API is going
 
-  - Create a whiteboardroom using chatroom_create/3 and a thread that
-    listens to whiteboard events and broadcasts the changes.
+  - Create a diagrammerroom using chatroom_create/3 and a thread that
+    listens to diagrammer events and broadcasts the changes.
 
-  - Serve a web page that provides the whiteboard frontend.  The frontend
+  - Serve a web page that provides the diagrammer frontend.  The frontend
     contains JavaScript that establishes a websocket on /chat.  If
     a websocket is obtained, hand it to to the room using
     chatroom_add/2
@@ -68,7 +68,7 @@ demo available at https://github.com/JanWielemaker/swi-chat  .
 
 % be a bit chatty.  Comment for silent operation.
 :- debug(chat).
-:- debug(whiteboard).
+:- debug(diagrammer).
 
 %%	server is det.
 %%	server(?Port) is det.
@@ -95,13 +95,15 @@ user:file_search_path(img, './img').
 user:file_search_path(js, './js').
 user:file_search_path(css, './css').
 
+:- html_resource(js('diagrammer.js'),[requires(js('jquery-2.0.3.min.js'))]).
+
 % setup the HTTP location. The  first   (/)  loads  the application. The
 % loaded application will create  a   websocket  using  /chat. Normally,
 % http_upgrade_to_websocket/3 runs call(Goal, WebSocket)  and closes the
 % connection if Goal terminates. Here, we use guarded(false) to tell the
 % server we will take responsibility for the websocket.
 
-:- http_handler(root(.),    whiteboard_page,      []).
+:- http_handler(root(.),    diagrammer_page,      []).
 :- http_handler(root(chat),
 		http_upgrade_to_websocket(
 		    accept_chat,
@@ -118,26 +120,26 @@ user:file_search_path(css, './css').
 :- http_handler(root(css),
 		serve_files_in_directory(css), [prefix]).
 
-whiteboard_page(_Request) :-
+diagrammer_page(_Request) :-
 	reply_html_page(
 	    title('Collaborative Diagram Editor'),
-	    \whiteboard_body).
+	    \diagrammer_body).
 
-%%	whiteboard_body//
+%%	diagrammer_body//
 %
 %	Generate the web page. To  keep   everything  compact  we do the
 %	styling inline.
 
-whiteboard_body -->
+diagrammer_body -->
 	{
            http_absolute_location(img('rect.png'), RectLoc, []),
 	   http_absolute_location(img('oval.png'), OvalLoc, []),
            http_absolute_location(img('diamond.png'), DiamondLoc, [])
         },
-	html_requires(css('whiteboard.css')),
+	html_requires(css('diagrammer.css')),
 	html_requires(js('jquery-2.0.3.min.js')),
 	html([ h1('A Collaborative Diagram Editor'),
-	       div(id(whiteboard), [
+	       div(id(diagrammer), [
 		   div([class(componentbar)], [
 			   img([id(rect_tool), src(RectLoc)],[]),
 			   img([class(selected), id(oval_tool), src(OvalLoc)]),
@@ -158,7 +160,7 @@ whiteboard_body -->
 %	handles events on the websocket.
 
 script -->
-	html_requires(js('whiteboard.js')),
+	html_requires(js('diagrammer.js')),
 	{ http_link_to_id(chat_websocket, [], WebSocketURL)
 	},
 	js_script({|javascript(WebSocketURL)||
@@ -204,9 +206,9 @@ handle_message(Message, Room) :-
 	websocket{opcode:text, data:String} :< Message, !,
 	read_term_from_atom(String, Term, []),
 	term_to_json(Term, JSON),
-	debug(whiteboard, 'JSON ~w', [JSON]),
+	debug(diagrammer, 'JSON ~w', [JSON]),
 	atom_json_term(TextJSON, JSON, [as(atom)]),
-	debug(whiteboard, 'TextJSON ~w', [TextJSON]),
+	debug(diagrammer, 'TextJSON ~w', [TextJSON]),
 	assertz(utterance(TextJSON)),
 	chatroom_broadcast(Room.name, Message.put(data, TextJSON)).
 handle_message(Message, _Room) :-

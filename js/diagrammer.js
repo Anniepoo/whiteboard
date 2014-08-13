@@ -1,9 +1,9 @@
 
-var whiteboard = {};
+var diagrammer = {};
 
 var ws_initialize = function(WebSocketURL) {
 
-    whiteboard = {
+    diagrammer = {
 	pengine: undefined,
 
 	currentTool: "oval",
@@ -15,7 +15,7 @@ var ws_initialize = function(WebSocketURL) {
 	},
 
 	unchoose_tools: function() {
-		$("#whiteboard .componentbar IMG").removeClass("selected");
+		$("#diagrammer .componentbar IMG").removeClass("selected");
 	},
 
 	newElement: function(e) {
@@ -34,7 +34,7 @@ var ws_initialize = function(WebSocketURL) {
 
 	newElementCommit: function(e) {
 		$("#msg").text("commit " + e.offsetX + " " + e.offsetY);
-		whiteboard.sendChat("commit(" + whiteboard.currentTool + ", " + e.offsetX +
+		diagrammer.sendChat("commit(" + diagrammer.currentTool + ", " + e.offsetX +
 		                ", " + e.offsetY + ")");
 	},
 
@@ -53,7 +53,7 @@ var ws_initialize = function(WebSocketURL) {
 		var cmd = data.args[0];
 		var x = data.args[1];
 		var y = data.args[2];
-		var canvas = $("#whiteboard .drawarea").get(0);
+		var canvas = $("#diagrammer .drawarea").get(0);
                 var context = canvas.getContext('2d');
 
                 context.setTransform(1, 0, 0, 1, 0, 0);
@@ -90,27 +90,27 @@ var ws_initialize = function(WebSocketURL) {
     };
 
     $("#rect_tool").on("mouseup", function() {
-	   whiteboard.unchoose_tools();
-	   whiteboard.currentTool = "rect";
+	   diagrammer.unchoose_tools();
+	   diagrammer.currentTool = "rect";
 	   $("#rect_tool").addClass("selected");
     });
     $("#oval_tool").on("mouseup", function() {
-	   whiteboard.unchoose_tools();
-	   whiteboard.currentTool = "oval";
+	   diagrammer.unchoose_tools();
+	   diagrammer.currentTool = "oval";
 	   $("#oval_tool").addClass("selected");
     });
     $("#diamond_tool").on("mouseup", function() {
-	   whiteboard.unchoose_tools();
-	   whiteboard.currentTool = "diamond";
+	   diagrammer.unchoose_tools();
+	   diagrammer.currentTool = "diamond";
 	   $("#diamond_tool").addClass("selected");
     });
 
-    $("#whiteboard .drawarea").on(
-	      {	"mousedown": whiteboard.newElement,
-		"mousemove": whiteboard.newElementMoveOrDrag,
-		"mouseup": whiteboard.newElementCommit});
+    $("#diagrammer .drawarea").on(
+	      {	"mousedown": diagrammer.newElement,
+		"mousemove": diagrammer.newElementMoveOrDrag,
+		"mouseup": diagrammer.newElementCommit});
 
-    whiteboard.openWebSocket();
+    diagrammer.openWebSocket();
 };
 
 var mouseDown = [0, 0, 0, 0, 0, 0, 0, 0, 0],

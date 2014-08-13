@@ -1,4 +1,4 @@
-/* CSS for the Whiteboard application */
+/* CSS for the Diagrammer application */
 
 body {
     font-family: monospace;
@@ -31,14 +31,14 @@ button {
 	min-height: 600px;
 }
 
-#whiteboard .componentbar img {
+#diagrammer .componentbar img {
 	width: 64px;
 	height: 64px;
 	display: block;
 	padding: 2px;
 }
 
-#whiteboard .componentbar img.selected {
+#diagrammer .componentbar img.selected {
 	border: 2px solid #444444;
 	padding: 0px;
 }
@@ -54,7 +54,7 @@ button {
 	border-bottom: 1px solid black;
 }
 
-#whiteboard .drawarea .rect {
+#diagrammer .drawarea .rect {
 	width: 50px;
 	height: 50px;
 	background-color: #ff8888;
@@ -62,7 +62,7 @@ button {
 	position: absolute;
 }
 
-#whiteboard .drawarea .oval {
+#diagrammer .drawarea .oval {
 	width: 50px;
 	height: 50px;
 	background-color: #88ff88;
@@ -70,7 +70,7 @@ button {
 	position: absolute;
 }
 
-#whiteboard .drawarea .diamond {
+#diagrammer .drawarea .diamond {
 	width: 50px;
 	height: 50px;
 	background-color: #8888ff;
