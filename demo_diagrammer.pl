@@ -43,6 +43,7 @@
 :- use_module(library(http/html_head)).
 
 :- use_module(chatroom).
+:- use_module(diagrammer).
 
 :- debug(websocket).
 
@@ -147,7 +148,7 @@ diagrammer_body -->
 		       ]),
 		   canvas([class(drawarea),
 			   width('1000'), height('612')], [])
-		       % http://stackoverflow.com/questions/17034795/html-canvas-scale
+	% http://stackoverflow.com/questions/17034795/html-canvas-scale
 		   ]),
 	       p(id(msg), 'message area'),
 	       p(id(output), 'output area')
