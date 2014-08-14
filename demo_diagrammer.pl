@@ -35,11 +35,8 @@
 :- use_module(library(http/http_dispatch)).
 :- use_module(library(http/websocket)).
 :- use_module(library(http/html_write)).
-:- use_module(library(http/js_write)).
 :- use_module(library(debug)).
 :- use_module(library(http/http_server_files)).
-:- use_module(library(http/http_path)).
-:- use_module(library(http/html_head)).
 
 :- use_module(chatroom).
 :- use_module(diagrammer).
@@ -95,8 +92,6 @@ user:file_search_path(img, './img').
 user:file_search_path(js, './js').
 user:file_search_path(css, './css').
 
-:- html_resource(js('diagrammer.js'),[requires(js('jquery-2.0.3.min.js'))]).
-
 % setup the HTTP location. The  first   (/)  loads  the application. The
 % loaded application will create  a   websocket  using  /chat. Normally,
 % http_upgrade_to_websocket/3 runs call(Goal, WebSocket)  and closes the
@@ -131,43 +126,9 @@ diagrammer_page(_Request) :-
 %	styling inline.
 
 diagrammer_body -->
-	{
-           http_absolute_location(img('rect.png'), RectLoc, []),
-	   http_absolute_location(img('oval.png'), OvalLoc, []),
-           http_absolute_location(img('diamond.png'), DiamondLoc, [])
-        },
-	html_requires(css('diagrammer.css')),
-	html_requires(js('jquery-2.0.3.min.js')),
-	html([ h1('A Collaborative Diagram Editor'),
-	       div(id(diagrammer), [
-		   div([class(componentbar)], [
-			   img([id(rect_tool), src(RectLoc)],[]),
-			   img([class(selected), id(oval_tool), src(OvalLoc)]),
-			   img([id(diamond_tool), src(DiamondLoc)])
-		       ]),
-		   canvas([class(drawarea),
-			   width('1000'), height('612')], [])
-	% http://stackoverflow.com/questions/17034795/html-canvas-scale
-		   ]),
-	       p(id(msg), 'message area'),
-	       p(id(output), 'output area')
-	     ]),
-	script.
+	html(h1('A Collaborative Diagram Editor')),
+	diagrammer.
 
-%%	script//
-%
-%	Generate the JavaScript  that  establishes   the  websocket  and
-%	handles events on the websocket.
-
-script -->
-	html_requires(js('diagrammer.js')),
-	{ http_link_to_id(chat_websocket, [], WebSocketURL)
-	},
-	js_script({|javascript(WebSocketURL)||
-$(document).ready(function() {
-    ws_initialize(WebSocketURL);
-});
-		  |}).
 
 %%	accept_chat(+WebSocket) is det.
 %
@@ -186,17 +147,6 @@ accept_chat(WebSocket) :-
 %
 %	Create our actual chat room.
 
-
 create_chat_room :-
 	chatroom_create(diagram_hub_room, Room, _{}),
-	thread_create(chatroom(Room), _, [alias(chatroom)]).
-
-%%	chatroom(+Room)
-%
-%	Realise the chatroom main loop: listen  for an event, update the
-%	state and possibly broadcast status updates.
-
-chatroom(Room) :-
-	thread_get_message(Room.queues.event, Message),
-	handle_message(Message, Room),
-	chatroom(Room).
+	thread_create(diagrammer:chatroom(Room), _, [alias(chatroom)]).
