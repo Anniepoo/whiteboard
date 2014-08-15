@@ -37,7 +37,7 @@ chatroom_loop(Room) :-
 % add an item (eventually do other things that can be incrementally
 % updated
 handle_message(Message, Room) :-
-	websocket{opcode:text, data:String} :< Message, !,
+	websocket{opcode:text, data:String} :< Message,
 	read_term_from_atom(String, Term, []),
 	phrase(broadcast_update(Term), CodesToBrowser),
 	atom_codes(AtomToBrowser, CodesToBrowser),
@@ -65,10 +65,10 @@ broadcast_update(commit(_, DownX, DownY, X, Y, 0)) -->
             number(DownX),
 	    number(DownY),
             node_hit(DownX, DownY, Node),
-            Node =.. [Functor, OldX, OldY],
+            Node =.. [Functor, ID, OldX, OldY],
 	    NewX is DownX - OldX + X,
             NewY is DownY - OldY + Y,
-            NNode =.. [Functor, NewX, NewY],
+            NNode =.. [Functor, ID, NewX, NewY],
             retractall(node(Node)),
             assertz(node(NNode))
         },
@@ -79,7 +79,8 @@ broadcast_update(commit(rect, _DownX, _DownY, X, Y, 0)) -->
 	{
             number(X),
 	    number(Y),
-            assertz(node(rect(X,Y)))
+            gensym(node, ID),
+            assertz(node(rect(ID,X,Y)))
         },
 	"diagrammer.addRect(",
 	number(X),
@@ -90,7 +91,8 @@ broadcast_update(commit(oval, _DownX, _DownY, X, Y, 0)) -->
 	{
             number(X),
 	    number(Y),
-	    assertz(node(oval(X,Y)))
+            gensym(node, ID),
+	    assertz(node(oval(ID,X,Y)))
         },
 	"diagrammer.addOval(",
 	number(X),
@@ -101,7 +103,8 @@ broadcast_update(commit(diamond, _DownX, _DownY, X, Y, 0)) -->
 	{
             number(X),
 	    number(Y),
-            assertz(node(diamond(X,Y)))
+            gensym(node, ID),
+            assertz(node(diamond(ID,X,Y)))
         },
 	"diagrammer.addDiamond(",
 	number(X),
@@ -118,21 +121,21 @@ rebuild_from_scratch -->
 	"diagrammer.clear();",
 	joined_update_adds(Bag).
 
-joined_update_adds([rect(X, Y) | T]) -->
+joined_update_adds([rect(_ID, X, Y) | T]) -->
 	"diagrammer.addRect(",
 	number(X),
 	",",
 	number(Y),
 	");",
 	joined_update_adds(T).
-joined_update_adds([oval(X, Y) | T]) -->
+joined_update_adds([oval(_ID, X, Y) | T]) -->
 	"diagrammer.addOval(",
 	number(X),
 	",",
 	number(Y),
 	");",
 	joined_update_adds(T).
-joined_update_adds([diamond(X, Y) | T]) -->
+joined_update_adds([diamond(_ID, X, Y) | T]) -->
 	"diagrammer.addDiamond(",
 	number(X),
 	",",
@@ -186,17 +189,17 @@ $(document).ready(function() {
 		  |}).
 
 
-node_hit(X, Y, rect(RX, RY)) :-
-	node(rect(RX, RY)),
+node_hit(X, Y, rect(ID, RX, RY)) :-
+	node(rect(ID, RX, RY)),
 	X >= RX - 50,
 	X =< RX + 50,
 	Y >= RY - 37.5,
 	Y =< RY + 37.5.
-node_hit(X, Y, diamond(RX, RY)) :-
-	node(diamond(RX, RY)),
+node_hit(X, Y, diamond(ID, RX, RY)) :-
+	node(diamond(ID, RX, RY)),
 	DX is abs(X - RX),
 	DY is abs(Y - RY),
 	DY < 37.5 - DX * 37.5 / 50.0.
-node_hit(X, Y, oval(RX, RY)) :-
-	node(oval(RX, RY)),
+node_hit(X, Y, oval(ID, RX, RY)) :-
+	node(oval(ID, RX, RY)),
 	37.5 * 37.5 > (X - RX)*(X - RX) + (Y - RY)*(Y - RY).

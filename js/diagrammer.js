@@ -1,6 +1,13 @@
 
 var diagrammer = {};
 
+function stopEvent(event){
+	if(event.preventDefault != undefined)
+		event.preventDefault();
+	if(event.stopPropagation != undefined)
+		event.stopPropagation();
+}
+	
 var ws_initialize = function(WebSocketURL) {
 
     diagrammer = {
@@ -26,6 +33,8 @@ var ws_initialize = function(WebSocketURL) {
 		//	diagrammer.sendChat("down(" + e.offsetX + "," + e.offsetY + ")");
 			diagrammer.mouseDownAtX = e.offsetX;
 			diagrammer.mouseDownAtY = e.offsetY;
+			stopEvent(e);
+			return false;
 	},
 
 	newElementMoveOrDrag: function(e) {
@@ -133,7 +142,8 @@ var ws_initialize = function(WebSocketURL) {
     $("#diagrammer .drawarea").on(
 	      {	"mousedown": diagrammer.newElement,
 		"mousemove": diagrammer.newElementMoveOrDrag,
-		"mouseup": diagrammer.newElementCommit});
+		"mouseup": diagrammer.newElementCommit,
+		"contextmenu": function(){ return false; }});
 
     diagrammer.openWebSocket();
 };
