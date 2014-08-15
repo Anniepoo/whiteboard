@@ -58,6 +58,13 @@ var ws_initialize = function(WebSocketURL) {
 		return $("#diagrammer .drawarea").get(0).getContext('2d');
 	},
 	
+	strokeOnly: function() {
+        var context = diagrammer.ctx();
+		context.lineWidth = 3;
+		context.strokeStyle = 'black';
+		context.stroke();	
+	},
+	
 	strokeFill: function() {
         var context = diagrammer.ctx();
 		context.fillStyle = 'yellow';

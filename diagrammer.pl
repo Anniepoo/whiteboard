@@ -14,7 +14,8 @@
 
 :- dynamic
 	node/1,                         % drawing element
-	visitor/1.			% joined visitors
+	visitor/1,			% joined visitors
+	arc/2.
 
 :- html_resource(js('diagrammer.js'),[requires(js('jquery-2.0.3.min.js'))]).
 
@@ -59,6 +60,18 @@ handle_message(Message, _Room) :-
 handle_message(Message, _Room) :-
 	debug(chat, 'Ignoring message ~p', [Message]).
 
+% arc draw case
+broadcast_update(commit(_, DownX, DownY, X, Y, 2)) -->
+	{
+            number(DownX),
+	    number(DownY),
+            node_hit(DownX, DownY, Node),
+	    node_hit(X, Y, EndNode),
+            Node =.. [_, ID, _, _],
+            EndNode =.. [_, EndID, _, _],
+            assertz(arc(ID, EndID))
+        },
+	rebuild_from_scratch.
 % move case
 broadcast_update(commit(_, DownX, DownY, X, Y, 0)) -->
 	{
@@ -73,7 +86,6 @@ broadcast_update(commit(_, DownX, DownY, X, Y, 0)) -->
             assertz(node(NNode))
         },
 	rebuild_from_scratch.
-
 % new case
 broadcast_update(commit(rect, _DownX, _DownY, X, Y, 0)) -->
 	{
@@ -116,10 +128,37 @@ joined_update --> rebuild_from_scratch.
 
 rebuild_from_scratch -->
 	{
-            findall(X, node(X), Bag)
+            findall(X, node(X), Bag),
+	    findall(arc(A,B), arc(A,B), ArcBag)
         },
 	"diagrammer.clear();",
+	arcs(ArcBag),
 	joined_update_adds(Bag).
+
+arcs([]) --> [],!.
+arcs(List) -->
+	"diagrammer.ctx().setTransform(1,0,0,1,0,0);",
+	"diagrammer.ctx().beginPath();",
+	arc_list(List),
+	"diagrammer.ctx().closePath(); diagrammer.strokeOnly();".
+arc_list([]) --> [].
+arc_list([arc(A,B) | T]) -->
+	{
+            node(S),
+            S =.. [_, A, AX, AY],
+	    node(E),
+            E =.. [_, B, BX, BY]
+        },
+	"diagrammer.ctx().moveTo(",
+	number(AX),
+	",",
+	number(AY),
+	"); diagrammer.ctx().lineTo(",
+	number(BX),
+	",",
+	number(BY),
+	");",
+	arc_list(T).
 
 joined_update_adds([rect(_ID, X, Y) | T]) -->
 	"diagrammer.addRect(",
