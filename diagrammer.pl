@@ -33,15 +33,20 @@ chatroom_loop(Room) :-
 %	Handed a dict with a chatroom message, and a
 %	dict that defines the Room, handles the message.
 %
-%
-% case for normal commands
+
+% add an item (eventually do other things that can be incrementally
+% updated
 handle_message(Message, Room) :-
 	websocket{opcode:text, data:String} :< Message, !,
 	read_term_from_atom(String, Term, []),
-	phrase(incremental_update(Term), CodesToBrowser),
+	phrase(broadcast_update(Term), CodesToBrowser),
 	atom_codes(AtomToBrowser, CodesToBrowser),
-	debug(diagrammer, 'AtomToBrowser ~w', [AtomToBrowser]),
+	debug(diagrammer, 'AtomToBrowser ~w, ~w', [String, AtomToBrowser]),
 	chatroom_broadcast(Room.name, Message.put(data, AtomToBrowser)).
+% someone joined
+% we are sending all in one chatroom_send here, but it's not clear that
+% we have to. I did this while looking for a thread starve issue, and
+% it's better architecture, so I'm leaving it.
 handle_message(Message, _Room) :-
 	chatroom{joined:Id} :< Message, !,
 	phrase(joined_update, CodesUpdate),
@@ -54,7 +59,23 @@ handle_message(Message, _Room) :-
 handle_message(Message, _Room) :-
 	debug(chat, 'Ignoring message ~p', [Message]).
 
-incremental_update(commit(rect, _DownX, _DownY, X, Y)) -->
+% move case
+broadcast_update(commit(_, DownX, DownY, X, Y, 0)) -->
+	{
+            number(DownX),
+	    number(DownY),
+            node_hit(DownX, DownY, Node),
+            Node =.. [Functor, OldX, OldY],
+	    NewX is DownX - OldX + X,
+            NewY is DownY - OldY + Y,
+            NNode =.. [Functor, NewX, NewY],
+            retractall(node(Node)),
+            assertz(node(NNode))
+        },
+	rebuild_from_scratch.
+
+% new case
+broadcast_update(commit(rect, _DownX, _DownY, X, Y, 0)) -->
 	{
             number(X),
 	    number(Y),
@@ -65,7 +86,7 @@ incremental_update(commit(rect, _DownX, _DownY, X, Y)) -->
 	", ",
 	number(Y),
 	");".
-incremental_update(commit(oval, _DownX, _DownY, X, Y)) -->
+broadcast_update(commit(oval, _DownX, _DownY, X, Y, 0)) -->
 	{
             number(X),
 	    number(Y),
@@ -76,7 +97,7 @@ incremental_update(commit(oval, _DownX, _DownY, X, Y)) -->
 	", ",
 	number(Y),
 	");".
-incremental_update(commit(diamond, _DownX, _DownY, X, Y)) -->
+broadcast_update(commit(diamond, _DownX, _DownY, X, Y, 0)) -->
 	{
             number(X),
 	    number(Y),
@@ -88,7 +109,9 @@ incremental_update(commit(diamond, _DownX, _DownY, X, Y)) -->
 	number(Y),
 	");".
 
-joined_update -->
+joined_update --> rebuild_from_scratch.
+
+rebuild_from_scratch -->
 	{
             findall(X, node(X), Bag)
         },
@@ -161,3 +184,19 @@ $(document).ready(function() {
     ws_initialize(WebSocketURL);
 });
 		  |}).
+
+
+node_hit(X, Y, rect(RX, RY)) :-
+	node(rect(RX, RY)),
+	X >= RX - 50,
+	X =< RX + 50,
+	Y >= RY - 37.5,
+	Y =< RY + 37.5.
+node_hit(X, Y, diamond(RX, RY)) :-
+	node(diamond(RX, RY)),
+	DX is abs(X - RX),
+	DY is abs(Y - RY),
+	DY < 37.5 - DX * 37.5 / 50.0.
+node_hit(X, Y, oval(RX, RY)) :-
+	node(oval(RX, RY)),
+	37.5 * 37.5 > (X - RX)*(X - RX) + (Y - RY)*(Y - RY).

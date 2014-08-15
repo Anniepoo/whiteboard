@@ -82,7 +82,7 @@ server(Port) :-
 	;   true
 	),
 	create_chat_room,
-	http_server(http_dispatch, [port(Port)]),
+	http_server(http_dispatch, [port(Port), workers(20)]),
 	format(user_error, 'Started server at http://localhost:~d/~n', [Port]).
 
 http:location(img, root(img), []).

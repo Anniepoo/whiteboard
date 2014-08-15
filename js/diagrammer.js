@@ -17,16 +17,16 @@ var ws_initialize = function(WebSocketURL) {
 	unchoose_tools: function() {
 		$("#diagrammer .componentbar IMG").removeClass("selected");
 	},
-
-	newElement: function(e) {
-			$("#msg").text("down " + e.offsetX + " " + e.offsetY);
-		//	diagrammer.sendChat("down(" + e.offsetX + "," + e.offsetY + ")");
-			mouseDownAtX = e.offsetX;
-			mouseDownAtY = e.offsetY;
-	},
 	
 	mouseDownAtX: 0,
 	mouseDownAtY: 0,
+	
+	newElement: function(e) {
+			$("#msg").text("down " + e.offsetX + " " + e.offsetY);
+		//	diagrammer.sendChat("down(" + e.offsetX + "," + e.offsetY + ")");
+			diagrammer.mouseDownAtX = e.offsetX;
+			diagrammer.mouseDownAtY = e.offsetY;
+	},
 
 	newElementMoveOrDrag: function(e) {
 		if (mouseDownCount === 0)
@@ -42,7 +42,7 @@ var ws_initialize = function(WebSocketURL) {
 		$("#msg").text("commit " + e.offsetX + " " + e.offsetY);
 		diagrammer.sendChat("commit(" + diagrammer.currentTool + ", " + 
 					diagrammer.mouseDownAtX + ", " + diagrammer.mouseDownAtY + ", " +
-					e.offsetX + ", " + e.offsetY + ")");
+					e.offsetX + ", " + e.offsetY + ", " + e.button + ")");
 	},
 	
 	ctx: function() {
