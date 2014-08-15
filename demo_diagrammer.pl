@@ -149,4 +149,4 @@ accept_chat(WebSocket) :-
 
 create_chat_room :-
 	chatroom_create(diagram_hub_room, Room, _{}),
-	thread_create(diagrammer:chatroom(Room), _, [alias(chatroom)]).
+	thread_create(diagrammer:chatroom_loop(Room), _, [alias(chatroom)]).

@@ -19,8 +19,14 @@ var ws_initialize = function(WebSocketURL) {
 	},
 
 	newElement: function(e) {
-			$("#msg").text("down " + e.clientX + " " + e.clientY);
+			$("#msg").text("down " + e.offsetX + " " + e.offsetY);
+		//	diagrammer.sendChat("down(" + e.offsetX + "," + e.offsetY + ")");
+			mouseDownAtX = e.offsetX;
+			mouseDownAtY = e.offsetY;
 	},
+	
+	mouseDownAtX: 0,
+	mouseDownAtY: 0,
 
 	newElementMoveOrDrag: function(e) {
 		if (mouseDownCount === 0)
@@ -34,53 +40,72 @@ var ws_initialize = function(WebSocketURL) {
 
 	newElementCommit: function(e) {
 		$("#msg").text("commit " + e.offsetX + " " + e.offsetY);
-		diagrammer.sendChat("commit(" + diagrammer.currentTool + ", " + e.offsetX +
-		                ", " + e.offsetY + ")");
+		diagrammer.sendChat("commit(" + diagrammer.currentTool + ", " + 
+					diagrammer.mouseDownAtX + ", " + diagrammer.mouseDownAtY + ", " +
+					e.offsetX + ", " + e.offsetY + ")");
+	},
+	
+	ctx: function() {
+		return $("#diagrammer .drawarea").get(0).getContext('2d');
+	},
+	
+	strokeFill: function() {
+        var context = diagrammer.ctx();
+		context.fillStyle = 'yellow';
+		context.fill();
+		context.lineWidth = 3;
+		context.strokeStyle = 'black';
+		context.stroke();	
 	},
 
+	addRect: function(x, y) {
+		console.log('rect' + x + ', ' + y);
+        var context = diagrammer.ctx();
+        context.setTransform(1, 0, 0, 1, 0, 0);
+        context.beginPath();
+		context.rect(x-50, y-37.5, 100, 75);
+		diagrammer.strokeFill();
+	},
+	
+	addOval: function(x, y) {
+		console.log('rect' + x + ', ' + y);
+        var context = diagrammer.ctx();
+        context.setTransform(1, 0, 0, 1, 0, 0);
+        context.beginPath();
+		context.arc(x, y, 37.5, 0, Math.PI * 2);
+		diagrammer.strokeFill();
+	},
+	
+	addDiamond: function(x, y) {
+		console.log('rect' + x + ', ' + y);
+		var context = diagrammer.ctx();
+        context.setTransform(1, 0, 0, 1, 0, 0);
+        context.beginPath();
+		context.moveTo(x-50, y);
+		context.lineTo(x, y-37.5);
+		context.lineTo(x+50,y);
+		context.lineTo(x, y+37.5);
+		context.closePath();
+		diagrammer.strokeFill();
+	},
+	
+	clear: function() {
+		var canvas = $("#diagrammer .drawarea").get(0);
+		diagrammer.ctx().clearRect(0, 0, canvas.width, canvas.height);
+	},
+	
 	openWebSocket: function() {
-	      connection = new WebSocket("ws://"+
+	    connection = new WebSocket("ws://"+
 				window.location.host+WebSocketURL,
 			     ['echo']);
 
-	      connection.onerror = function (error) {
+	    connection.onerror = function (error) {
                   console.log('WebSocket Error ' + error);
               };
 
-              connection.onmessage = function (e) {
-		console.log(e.data);
-		var data = eval('(' + e.data + ')');
-		var cmd = data.args[0];
-		var x = data.args[1];
-		var y = data.args[2];
-		var canvas = $("#diagrammer .drawarea").get(0);
-                var context = canvas.getContext('2d');
-
-                context.setTransform(1, 0, 0, 1, 0, 0);
-                context.beginPath();
-		switch (cmd) {
-	        case  "rect":
-			   context.rect(x-50, y-37.5, 100, 75);
-			   break;
-	        case  "oval":
-			   context.arc(x, y, 37.5, 0, Math.PI * 2);
-			   break;
-		case  "diamond":
-			   context.moveTo(x-50, y);
-			   context.lineTo(x, y-37.5);
-			   context.lineTo(x+50,y);
-			   context.lineTo(x, y+37.5);
-			   context.closePath();
-			   break;
-		default:
-			   break;
-		}
-
-                context.fillStyle = 'yellow';
-                context.fill();
-                context.lineWidth = 3;
-                context.strokeStyle = 'black';
-                context.stroke();
+        connection.onmessage = function (e) {
+			console.log(e.data);
+			var data = eval(e.data);
 	      };
 	},
 

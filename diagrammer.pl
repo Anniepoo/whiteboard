@@ -1,5 +1,5 @@
 :- module(diagrammer , [
-	      chatroom/1,
+	      chatroom_loop/1,
 	      diagrammer//0
 	  ]).
 
@@ -10,22 +10,23 @@
 :- use_module(library(http/js_write)).
 :- use_module(library(http/html_write)).
 :- use_module(library(http/http_dispatch)).
+:- use_module(library(dcg/basics)).
 
 :- dynamic
-	utterance/1,			% messages
+	node/1,                         % drawing element
 	visitor/1.			% joined visitors
 
 :- html_resource(js('diagrammer.js'),[requires(js('jquery-2.0.3.min.js'))]).
 
-%%	chatroom(+Room)
+%%	chatroom_loop(+Room)
 %
 %	Realise the chatroom main loop: listen  for an event, update the
 %	state and possibly broadcast status updates.
 
-chatroom(Room) :-
+chatroom_loop(Room) :-
 	thread_get_message(Room.queues.event, Message),
 	handle_message(Message, Room),
-	chatroom(Room).
+	chatroom_loop(Room).
 
 %%	handle_message(+Message, +Room) is det
 %
@@ -33,26 +34,89 @@ chatroom(Room) :-
 %	dict that defines the Room, handles the message.
 %
 %
+% case for normal commands
 handle_message(Message, Room) :-
 	websocket{opcode:text, data:String} :< Message, !,
 	read_term_from_atom(String, Term, []),
-	term_to_json(Term, JSON),
-	debug(diagrammer, 'JSON ~w', [JSON]),
-	atom_json_term(TextJSON, JSON, [as(atom)]),
-	debug(diagrammer, 'TextJSON ~w', [TextJSON]),
-	assertz(utterance(TextJSON)),
-	chatroom_broadcast(Room.name, Message.put(data, TextJSON)).
+	phrase(incremental_update(Term), CodesToBrowser),
+	atom_codes(AtomToBrowser, CodesToBrowser),
+	debug(diagrammer, 'AtomToBrowser ~w', [AtomToBrowser]),
+	chatroom_broadcast(Room.name, Message.put(data, AtomToBrowser)).
 handle_message(Message, _Room) :-
 	chatroom{joined:Id} :< Message, !,
+	phrase(joined_update, CodesUpdate),
+	atom_codes(AtomUpdate, CodesUpdate),
 	assertz(visitor(Id)),
-	forall(utterance(Utterance),
-	       chatroom_send(Id, text(Utterance))).
+	chatroom_send(Id, text(AtomUpdate)).
 handle_message(Message, _Room) :-
 	chatroom{left:Id} :< Message, !,
 	retractall(visitor(Id)).
 handle_message(Message, _Room) :-
 	debug(chat, 'Ignoring message ~p', [Message]).
 
+incremental_update(commit(rect, _DownX, _DownY, X, Y)) -->
+	{
+            number(X),
+	    number(Y),
+            assertz(node(rect(X,Y)))
+        },
+	"diagrammer.addRect(",
+	number(X),
+	", ",
+	number(Y),
+	");".
+incremental_update(commit(oval, _DownX, _DownY, X, Y)) -->
+	{
+            number(X),
+	    number(Y),
+	    assertz(node(oval(X,Y)))
+        },
+	"diagrammer.addOval(",
+	number(X),
+	", ",
+	number(Y),
+	");".
+incremental_update(commit(diamond, _DownX, _DownY, X, Y)) -->
+	{
+            number(X),
+	    number(Y),
+            assertz(node(diamond(X,Y)))
+        },
+	"diagrammer.addDiamond(",
+	number(X),
+	", ",
+	number(Y),
+	");".
+
+joined_update -->
+	{
+            findall(X, node(X), Bag)
+        },
+	"diagrammer.clear();",
+	joined_update_adds(Bag).
+
+joined_update_adds([rect(X, Y) | T]) -->
+	"diagrammer.addRect(",
+	number(X),
+	",",
+	number(Y),
+	");",
+	joined_update_adds(T).
+joined_update_adds([oval(X, Y) | T]) -->
+	"diagrammer.addOval(",
+	number(X),
+	",",
+	number(Y),
+	");",
+	joined_update_adds(T).
+joined_update_adds([diamond(X, Y) | T]) -->
+	"diagrammer.addDiamond(",
+	number(X),
+	",",
+	number(Y),
+	");",
+	joined_update_adds(T).
+joined_update_adds([]) --> [].
 
 %%	diagrammer(?A, ?B) is det
 %
