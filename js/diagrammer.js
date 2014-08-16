@@ -145,6 +145,11 @@ var ws_initialize = function(WebSocketURL) {
 	   diagrammer.currentTool = "diamond";
 	   $("#diamond_tool").addClass("selected");
     });
+	$("#text_tool").on("mouseup", function() {
+	   diagrammer.unchoose_tools();
+	   diagrammer.currentTool = "text";
+	   $("#text_tool").addClass("selected");
+    });
 
     $("#diagrammer .drawarea").on(
 	      {	"mousedown": diagrammer.newElement,

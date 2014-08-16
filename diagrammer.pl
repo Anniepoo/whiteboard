@@ -191,7 +191,8 @@ diagrammer -->
 	{
            http_absolute_location(img('rect.png'), RectLoc, []),
 	   http_absolute_location(img('oval.png'), OvalLoc, []),
-           http_absolute_location(img('diamond.png'), DiamondLoc, [])
+           http_absolute_location(img('diamond.png'), DiamondLoc, []),
+           http_absolute_location(img('text.png'), TextLoc, [])
         },
 	html_requires(css('diagrammer.css')),
 	html_requires(js('jquery-2.0.3.min.js')),
@@ -200,7 +201,8 @@ diagrammer -->
 		   div([class(componentbar)], [
 			   img([id(rect_tool), src(RectLoc)],[]),
 			   img([class(selected), id(oval_tool), src(OvalLoc)]),
-			   img([id(diamond_tool), src(DiamondLoc)])
+			   img([id(diamond_tool), src(DiamondLoc)]),
+			   img([id(text_tool), src(TextLoc)])
 		       ]),
 		   canvas([class(drawarea),
 			   width('1000'), height('612')], [])
