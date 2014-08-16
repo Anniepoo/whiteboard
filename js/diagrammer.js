@@ -1,5 +1,5 @@
 
-var diagrammer = {};
+var ddd = {};
 
 function stopEvent(event){
 	if(event.preventDefault != undefined)
@@ -10,7 +10,7 @@ function stopEvent(event){
 	
 var ws_initialize = function(WebSocketURL) {
 
-    diagrammer = {
+    ddd = {
 	pengine: undefined,
 
 	currentTool: "oval",
@@ -30,9 +30,9 @@ var ws_initialize = function(WebSocketURL) {
 	
 	newElement: function(e) {
 			$("#msg").text("down " + e.offsetX + " " + e.offsetY);
-		//	diagrammer.sendChat("down(" + e.offsetX + "," + e.offsetY + ")");
-			diagrammer.mouseDownAtX = e.offsetX;
-			diagrammer.mouseDownAtY = e.offsetY;
+		//	ddd.sendChat("down(" + e.offsetX + "," + e.offsetY + ")");
+			ddd.mouseDownAtX = e.offsetX;
+			ddd.mouseDownAtY = e.offsetY;
 			stopEvent(e);
 			return false;
 	},
@@ -49,8 +49,8 @@ var ws_initialize = function(WebSocketURL) {
 
 	newElementCommit: function(e) {
 		$("#msg").text("commit " + e.offsetX + " " + e.offsetY);
-		diagrammer.sendChat("commit(" + diagrammer.currentTool + ", " + 
-					diagrammer.mouseDownAtX + ", " + diagrammer.mouseDownAtY + ", " +
+		ddd.sendChat("commit(" + ddd.currentTool + ", " + 
+					ddd.mouseDownAtX + ", " + ddd.mouseDownAtY + ", " +
 					e.offsetX + ", " + e.offsetY + ", " + e.button + ")");
 	},
 	
@@ -59,14 +59,14 @@ var ws_initialize = function(WebSocketURL) {
 	},
 	
 	strokeOnly: function() {
-        var context = diagrammer.ctx();
+        var context = ddd.ctx();
 		context.lineWidth = 3;
 		context.strokeStyle = 'black';
 		context.stroke();	
 	},
 	
 	strokeFill: function() {
-        var context = diagrammer.ctx();
+        var context = ddd.ctx();
 		context.fillStyle = 'yellow';
 		context.fill();
 		context.lineWidth = 3;
@@ -76,25 +76,25 @@ var ws_initialize = function(WebSocketURL) {
 
 	addRect: function(x, y) {
 		console.log('rect' + x + ', ' + y);
-        var context = diagrammer.ctx();
+        var context = ddd.ctx();
         context.setTransform(1, 0, 0, 1, 0, 0);
         context.beginPath();
 		context.rect(x-50, y-37.5, 100, 75);
-		diagrammer.strokeFill();
+		ddd.strokeFill();
 	},
 	
 	addOval: function(x, y) {
 		console.log('rect' + x + ', ' + y);
-        var context = diagrammer.ctx();
+        var context = ddd.ctx();
         context.setTransform(1, 0, 0, 1, 0, 0);
         context.beginPath();
 		context.arc(x, y, 37.5, 0, Math.PI * 2);
-		diagrammer.strokeFill();
+		ddd.strokeFill();
 	},
 	
 	addDiamond: function(x, y) {
 		console.log('rect' + x + ', ' + y);
-		var context = diagrammer.ctx();
+		var context = ddd.ctx();
         context.setTransform(1, 0, 0, 1, 0, 0);
         context.beginPath();
 		context.moveTo(x-50, y);
@@ -102,12 +102,12 @@ var ws_initialize = function(WebSocketURL) {
 		context.lineTo(x+50,y);
 		context.lineTo(x, y+37.5);
 		context.closePath();
-		diagrammer.strokeFill();
+		ddd.strokeFill();
 	},
 	
 	clear: function() {
 		var canvas = $("#diagrammer .drawarea").get(0);
-		diagrammer.ctx().clearRect(0, 0, canvas.width, canvas.height);
+		ddd.ctx().clearRect(0, 0, canvas.width, canvas.height);
 	},
 	
 	openWebSocket: function() {
@@ -131,33 +131,33 @@ var ws_initialize = function(WebSocketURL) {
     };
 
     $("#rect_tool").on("mouseup", function() {
-	   diagrammer.unchoose_tools();
-	   diagrammer.currentTool = "rect";
+	   ddd.unchoose_tools();
+	   ddd.currentTool = "rect";
 	   $("#rect_tool").addClass("selected");
     });
     $("#oval_tool").on("mouseup", function() {
-	   diagrammer.unchoose_tools();
-	   diagrammer.currentTool = "oval";
+	   ddd.unchoose_tools();
+	   ddd.currentTool = "oval";
 	   $("#oval_tool").addClass("selected");
     });
     $("#diamond_tool").on("mouseup", function() {
-	   diagrammer.unchoose_tools();
-	   diagrammer.currentTool = "diamond";
+	   ddd.unchoose_tools();
+	   ddd.currentTool = "diamond";
 	   $("#diamond_tool").addClass("selected");
     });
 	$("#text_tool").on("mouseup", function() {
-	   diagrammer.unchoose_tools();
-	   diagrammer.currentTool = "text";
+	   ddd.unchoose_tools();
+	   ddd.currentTool = "text";
 	   $("#text_tool").addClass("selected");
     });
 
     $("#diagrammer .drawarea").on(
-	      {	"mousedown": diagrammer.newElement,
-		"mousemove": diagrammer.newElementMoveOrDrag,
-		"mouseup": diagrammer.newElementCommit,
+	      {	"mousedown": ddd.newElement,
+		"mousemove": ddd.newElementMoveOrDrag,
+		"mouseup": ddd.newElementCommit,
 		"contextmenu": function(){ return false; }});
 
-    diagrammer.openWebSocket();
+    ddd.openWebSocket();
 };
 
 var mouseDown = [0, 0, 0, 0, 0, 0, 0, 0, 0],

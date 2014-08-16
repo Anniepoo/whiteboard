@@ -94,7 +94,7 @@ broadcast_update(commit(rect, _DownX, _DownY, X, Y, 0)) -->
             gensym(node, ID),
             assertz(node(rect(ID,X,Y)))
         },
-	"diagrammer.addRect(",
+	"ddd.addRect(",
 	number(X),
 	", ",
 	number(Y),
@@ -106,7 +106,7 @@ broadcast_update(commit(oval, _DownX, _DownY, X, Y, 0)) -->
             gensym(node, ID),
 	    assertz(node(oval(ID,X,Y)))
         },
-	"diagrammer.addOval(",
+	"ddd.addOval(",
 	number(X),
 	", ",
 	number(Y),
@@ -118,7 +118,7 @@ broadcast_update(commit(diamond, _DownX, _DownY, X, Y, 0)) -->
             gensym(node, ID),
             assertz(node(diamond(ID,X,Y)))
         },
-	"diagrammer.addDiamond(",
+	"ddd.addDiamond(",
 	number(X),
 	", ",
 	number(Y),
@@ -131,16 +131,16 @@ rebuild_from_scratch -->
             findall(X, node(X), Bag),
 	    findall(arc(A,B), arc(A,B), ArcBag)
         },
-	"diagrammer.clear();",
+	"ddd.clear();",
 	arcs(ArcBag),
 	joined_update_adds(Bag).
 
 arcs([]) --> [],!.
 arcs(List) -->
-	"diagrammer.ctx().setTransform(1,0,0,1,0,0);",
-	"diagrammer.ctx().beginPath();",
+	"ddd.ctx().setTransform(1,0,0,1,0,0);",
+	"ddd.ctx().beginPath();",
 	arc_list(List),
-	"diagrammer.ctx().closePath(); diagrammer.strokeOnly();".
+	"ddd.ctx().closePath(); ddd.strokeOnly();".
 arc_list([]) --> [].
 arc_list([arc(A,B) | T]) -->
 	{
@@ -149,11 +149,11 @@ arc_list([arc(A,B) | T]) -->
 	    node(E),
             E =.. [_, B, BX, BY]
         },
-	"diagrammer.ctx().moveTo(",
+	"ddd.ctx().moveTo(",
 	number(AX),
 	",",
 	number(AY),
-	"); diagrammer.ctx().lineTo(",
+	"); ddd.ctx().lineTo(",
 	number(BX),
 	",",
 	number(BY),
@@ -161,21 +161,21 @@ arc_list([arc(A,B) | T]) -->
 	arc_list(T).
 
 joined_update_adds([rect(_ID, X, Y) | T]) -->
-	"diagrammer.addRect(",
+	"ddd.addRect(",
 	number(X),
 	",",
 	number(Y),
 	");",
 	joined_update_adds(T).
 joined_update_adds([oval(_ID, X, Y) | T]) -->
-	"diagrammer.addOval(",
+	"ddd.addOval(",
 	number(X),
 	",",
 	number(Y),
 	");",
 	joined_update_adds(T).
 joined_update_adds([diamond(_ID, X, Y) | T]) -->
-	"diagrammer.addDiamond(",
+	"ddd.addDiamond(",
 	number(X),
 	",",
 	number(Y),
