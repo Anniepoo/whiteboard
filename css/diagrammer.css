@@ -78,4 +78,15 @@ button {
 	position: absolute;
 }
 
+#dia_textentry {
+	background-color:  #888888;
+	border: 1px solid #000;
+	position: absolute;
+	z-index: 5;
+	display: none;
+}
+
+.canvas-container {
+	display: inline;
+}
 

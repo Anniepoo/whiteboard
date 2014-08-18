@@ -129,27 +129,23 @@ var ws_initialize = function(WebSocketURL) {
               connection.send(msg);
         }
     };
-
-    $("#rect_tool").on("mouseup", function() {
-	   ddd.unchoose_tools();
-	   ddd.currentTool = "rect";
-	   $("#rect_tool").addClass("selected");
-    });
-    $("#oval_tool").on("mouseup", function() {
-	   ddd.unchoose_tools();
-	   ddd.currentTool = "oval";
-	   $("#oval_tool").addClass("selected");
-    });
-    $("#diamond_tool").on("mouseup", function() {
-	   ddd.unchoose_tools();
-	   ddd.currentTool = "diamond";
-	   $("#diamond_tool").addClass("selected");
-    });
-	$("#text_tool").on("mouseup", function() {
-	   ddd.unchoose_tools();
-	   ddd.currentTool = "text";
-	   $("#text_tool").addClass("selected");
-    });
+	
+	var tools = ["rect", "oval", "diamond", "text"];
+	
+	function make_mouseup(name) {
+		return function() {
+			   var tool_name = name;
+			   ddd.unchoose_tools();
+			   ddd.currentTool = tool_name;
+			   $("#" + tool_name + "_tool").addClass("selected");
+		}
+	}
+	
+	for(var i = 0 ; i < tools.length; i++) {
+		var mouseup_fn = make_mouseup(tools[i]);
+		
+		$("#" + tools[i] + "_tool").on("mouseup", mouseup_fn);
+	};
 
     $("#diagrammer .drawarea").on(
 	      {	"mousedown": ddd.newElement,

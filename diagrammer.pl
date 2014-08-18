@@ -199,13 +199,15 @@ diagrammer -->
 	html([
 	       div(id(diagrammer), [
 		   div([class(componentbar)], [
-			   img([id(rect_tool), src(RectLoc)],[]),
+			   img([id(rect_tool), src(RectLoc)]),
 			   img([class(selected), id(oval_tool), src(OvalLoc)]),
 			   img([id(diamond_tool), src(DiamondLoc)]),
 			   img([id(text_tool), src(TextLoc)])
 		       ]),
-		   canvas([class(drawarea),
-			   width('1000'), height('612')], [])
+		   div([class('canvas-container')], [
+		       canvas([class(drawarea),
+			   width('1000'), height('612')], []),
+		       input([type(text), id(dia_textentry)], [])				       ])
 	% http://stackoverflow.com/questions/17034795/html-canvas-scale
 		   ]),
 	       p(id(msg), 'message area'),

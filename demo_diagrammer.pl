@@ -67,6 +67,13 @@ demo available at https://github.com/JanWielemaker/swi-chat  .
 :- debug(chat).
 :- debug(diagrammer).
 
+:-
+   current_prolog_flag(version, X),
+   (   X >= 70119
+   ->  true
+   ;   writeln('You must use SWI-Prolog version >= 7.1.19')
+   ).
+
 %%	server is det.
 %%	server(?Port) is det.
 %
@@ -128,7 +135,6 @@ diagrammer_page(_Request) :-
 diagrammer_body -->
 	html(h1('A Collaborative Diagram Editor')),
 	diagrammer.
-
 
 %%	accept_chat(+WebSocket) is det.
 %
