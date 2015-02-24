@@ -10,4 +10,4 @@
 :- debug(chat).				% this demo
 :- debug_message_context(+time).	% add timestamp to debug message
 
-:- use_module(chat).
+:- use_module(demo_diagrammer).
