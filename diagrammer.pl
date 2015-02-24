@@ -4,7 +4,7 @@
 	  ]).
 
 :- use_module(library(http/json)).
-:- use_module(chatroom).
+:- use_module(hub).
 :- use_module(library(http/http_path)).
 :- use_module(library(http/html_head)).
 :- use_module(library(http/js_write)).
@@ -31,7 +31,7 @@ chatroom_loop(Room) :-
 
 %%	handle_message(+Message, +Room) is det
 %
-%	Handed a dict with a chatroom message, and a
+%	Handed a dict with a hub message, and a
 %	dict that defines the Room, handles the message.
 %
 
@@ -43,19 +43,19 @@ handle_message(Message, Room) :-
 	phrase(broadcast_update(Term), CodesToBrowser),
 	atom_codes(AtomToBrowser, CodesToBrowser),
 	debug(diagrammer, 'AtomToBrowser ~w, ~w', [String, AtomToBrowser]),
-	chatroom_broadcast(Room.name, Message.put(data, AtomToBrowser)).
+	hub_broadcast(Room.name, Message.put(data, AtomToBrowser)).
 % someone joined
-% we are sending all in one chatroom_send here, but it's not clear that
+% we are sending all in one hub_send here, but it's not clear that
 % we have to. I did this while looking for a thread starve issue, and
 % it's better architecture, so I'm leaving it.
 handle_message(Message, _Room) :-
-	chatroom{joined:Id} :< Message, !,
+	hub{joined:Id} :< Message, !,
 	phrase(joined_update, CodesUpdate),
 	atom_codes(AtomUpdate, CodesUpdate),
 	assertz(visitor(Id)),
-	chatroom_send(Id, text(AtomUpdate)).
+	hub_send(Id, text(AtomUpdate)).
 handle_message(Message, _Room) :-
-	chatroom{left:Id} :< Message, !,
+	hub{left:Id} :< Message, !,
 	retractall(visitor(Id)).
 handle_message(Message, _Room) :-
 	debug(chat, 'Ignoring message ~p', [Message]).

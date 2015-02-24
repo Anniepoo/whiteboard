@@ -38,7 +38,7 @@
 :- use_module(library(debug)).
 :- use_module(library(http/http_server_files)).
 
-:- use_module(chatroom).
+:- use_module(hub).
 :- use_module(diagrammer).
 
 :- debug(websocket).
@@ -147,12 +147,12 @@ diagrammer_body -->
 %	diagram_hub_room is the name of the chatroom
 
 accept_chat(WebSocket) :-
-	chatroom_add(diagram_hub_room, WebSocket, _Id).
+	hub_add(diagram_hub_room, WebSocket, _Id).
 
 %%	create_chat_room
 %
 %	Create our actual chat room.
 
 create_chat_room :-
-	chatroom_create(diagram_hub_room, Room, _{}),
+	hub_create(diagram_hub_room, Room, _{}),
 	thread_create(diagrammer:chatroom_loop(Room), _, [alias(chatroom)]).
