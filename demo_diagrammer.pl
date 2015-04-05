@@ -69,9 +69,9 @@ demo available at https://github.com/JanWielemaker/swi-chat  .
 
 :-
    current_prolog_flag(version, X),
-   (   X >= 70119
+   (   X >= 70135
    ->  true
-   ;   writeln('You must use SWI-Prolog version >= 7.1.19')
+   ;   writeln('You must use SWI-Prolog version >= 7.1.35')
    ).
 
 %%	server is det.
