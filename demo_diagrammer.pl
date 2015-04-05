@@ -38,7 +38,7 @@
 :- use_module(library(debug)).
 :- use_module(library(http/http_server_files)).
 
-:- use_module(hub).
+:- use_module(library(http/hub)).
 :- use_module(diagrammer).
 
 :- debug(websocket).

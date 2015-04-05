@@ -4,7 +4,7 @@
 	  ]).
 
 :- use_module(library(http/json)).
-:- use_module(hub).
+:- use_module(library(http/hub)).
 :- use_module(library(http/http_path)).
 :- use_module(library(http/html_head)).
 :- use_module(library(http/js_write)).
