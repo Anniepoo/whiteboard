@@ -9,7 +9,7 @@ you can load `demo_diagrammer.pl` and run
 
 This will start the  server  at  port   3080  in  debug  mode, showing a
 graphical window with the running server threads and debug messages in
-the console. 
+the console.
 
 This advice is probably bogus, I have retained it because it's probably easy to get it working,
 but I haven't worked on it
@@ -30,14 +30,23 @@ start the server:
 
 ## Status
 
-Minimally functional, pre alpha, at the moment this is mostly a way of poking at websockets.   
+Minimally functional, pre alpha, at the moment this is mostly a way of poking at websockets.
 Tested with the server running
 on Linux using firefox and chromium as clients. Anne Ogborn confirmed it
 also works using Windows 7 as server and IE 11.0 as client.
+
+## Drawing
+
+Select one of the tools (text is broken as I write this), left click to
+draw. Drag to move, right click drag to make connecting lines.
 
 ## Future
 
 The library hub.pl is probably going to end up as a core library and the
 demo program will than be added as a demo application.
+
+## Contributors
+
+ * Anne Ogborn (Anniepoo) initial code
 
 
