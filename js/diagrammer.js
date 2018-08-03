@@ -7,13 +7,15 @@ function stopEvent(event){
 	if(event.stopPropagation != undefined)
 		event.stopPropagation();
 }
-	
+
 var ws_initialize = function(WebSocketURL) {
 
     ddd = {
 	pengine: undefined,
 
 	currentTool: "oval",
+
+    currentColor: "#333399",
 
 	connection: undefined,
 
@@ -24,10 +26,10 @@ var ws_initialize = function(WebSocketURL) {
 	unchoose_tools: function() {
 		$("#diagrammer .componentbar IMG").removeClass("selected");
 	},
-	
+
 	mouseDownAtX: 0,
 	mouseDownAtY: 0,
-	
+
 	newElement: function(e) {
 			$("#msg").text("down " + e.offsetX + " " + e.offsetY);
 		//	ddd.sendChat("down(" + e.offsetX + "," + e.offsetY + ")");
@@ -48,68 +50,70 @@ var ws_initialize = function(WebSocketURL) {
 	},
 
 	newElementCommit: function(e) {
-		$("#msg").text("commit " + e.offsetX + " " + e.offsetY);
-		ddd.sendChat("commit(" + ddd.currentTool + ", " + 
+		$("#msg").text("commit(" + ddd.currentTool + ", \"" + ddd.currentColor + "\", " +
+					ddd.mouseDownAtX + ", " + ddd.mouseDownAtY + ", " +
+					e.offsetX + ", " + e.offsetY + ", " + e.button + ")");
+		ddd.sendChat("commit(" + ddd.currentTool + ", \"" + ddd.currentColor + "\", " +
 					ddd.mouseDownAtX + ", " + ddd.mouseDownAtY + ", " +
 					e.offsetX + ", " + e.offsetY + ", " + e.button + ")");
 	},
-	
+
 	ctx: function() {
 		return $("#diagrammer .drawarea").get(0).getContext('2d');
 	},
-	
+
 	strokeOnly: function() {
-        var context = ddd.ctx();
+    var context = ddd.ctx();
 		context.lineWidth = 3;
 		context.strokeStyle = 'black';
-		context.stroke();	
+		context.stroke();
 	},
-	
-	strokeFill: function() {
-        var context = ddd.ctx();
-		context.fillStyle = 'yellow';
+
+	strokeFill: function(fillColor) {
+    var context = ddd.ctx();
+		context.fillStyle = fillColor;
 		context.fill();
 		context.lineWidth = 3;
 		context.strokeStyle = 'black';
-		context.stroke();	
+		context.stroke();
 	},
 
-	addRect: function(x, y) {
-		console.log('rect' + x + ', ' + y);
-        var context = ddd.ctx();
-        context.setTransform(1, 0, 0, 1, 0, 0);
-        context.beginPath();
+	addRect: function(fillColor, x, y) {
+		console.log('rect: ' + fillColor + ', ' + x + ', ' + y);
+    var context = ddd.ctx();
+    context.setTransform(1, 0, 0, 1, 0, 0);
+    context.beginPath();
 		context.rect(x-50, y-37.5, 100, 75);
-		ddd.strokeFill();
+		ddd.strokeFill(fillColor);
 	},
-	
-	addOval: function(x, y) {
-		console.log('rect' + x + ', ' + y);
-        var context = ddd.ctx();
-        context.setTransform(1, 0, 0, 1, 0, 0);
-        context.beginPath();
+
+	addOval: function(fillColor, x, y) {
+		console.log('oval: ' + fillColor + ', ' + x + ', ' + y);
+    var context = ddd.ctx();
+    context.setTransform(1, 0, 0, 1, 0, 0);
+    context.beginPath();
 		context.arc(x, y, 37.5, 0, Math.PI * 2);
-		ddd.strokeFill();
+		ddd.strokeFill(fillColor);
 	},
-	
-	addDiamond: function(x, y) {
-		console.log('rect' + x + ', ' + y);
+
+	addDiamond: function(fillColor, x, y) {
+		console.log('diamond: ' + fillColor + ', ' + x + ', ' + y);
 		var context = ddd.ctx();
-        context.setTransform(1, 0, 0, 1, 0, 0);
-        context.beginPath();
+    context.setTransform(1, 0, 0, 1, 0, 0);
+    context.beginPath();
 		context.moveTo(x-50, y);
 		context.lineTo(x, y-37.5);
 		context.lineTo(x+50,y);
 		context.lineTo(x, y+37.5);
 		context.closePath();
-		ddd.strokeFill();
+		ddd.strokeFill(fillColor);
 	},
-	
+
 	clear: function() {
 		var canvas = $("#diagrammer .drawarea").get(0);
 		ddd.ctx().clearRect(0, 0, canvas.width, canvas.height);
 	},
-	
+
 	openWebSocket: function() {
 	    connection = new WebSocket("ws://"+
 				window.location.host+WebSocketURL,
@@ -129,9 +133,9 @@ var ws_initialize = function(WebSocketURL) {
               connection.send(msg);
         }
     };
-	
+
 	var tools = ["rect", "oval", "diamond", "text"];
-	
+
 	function make_mouseup(name) {
 		return function() {
 			   var tool_name = name;
@@ -140,10 +144,10 @@ var ws_initialize = function(WebSocketURL) {
 			   $("#" + tool_name + "_tool").addClass("selected");
 		}
 	}
-	
+
 	for(var i = 0 ; i < tools.length; i++) {
 		var mouseup_fn = make_mouseup(tools[i]);
-		
+
 		$("#" + tools[i] + "_tool").on("mouseup", mouseup_fn);
 	};
 
@@ -158,7 +162,7 @@ var ws_initialize = function(WebSocketURL) {
 
 var mouseDown = [0, 0, 0, 0, 0, 0, 0, 0, 0],
     mouseDownCount = 0;
-	
+
 $(document).ready( function() {
 	document.body.onmousedown = function(evt) {
 	  ++mouseDown[evt.button];
