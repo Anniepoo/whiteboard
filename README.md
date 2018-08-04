@@ -48,5 +48,5 @@ demo program will than be added as a demo application.
 ## Contributors
 
  * Anne Ogborn (Anniepoo) initial code
-
+ * Craig Allen (cjallen88) fill color and picker
 

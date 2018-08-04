@@ -18,6 +18,7 @@
 	arc/2.
 
 :- html_resource(js('diagrammer.js'),[requires(js('jquery-2.0.3.min.js'))]).
+:- html_resource(js('query.colorPicker.min.js'),[requires(js('jquery-2.0.3.min.js'))]).
 
 %%	chatroom_loop(+Room)
 %
@@ -61,64 +62,70 @@ handle_message(Message, _Room) :-
 	debug(chat, 'Ignoring message ~p', [Message]).
 
 % arc draw case
-broadcast_update(commit(_, DownX, DownY, X, Y, 2)) -->
+broadcast_update(commit(_, _, DownX, DownY, X, Y, 2)) -->
 	{
             number(DownX),
 	    number(DownY),
             node_hit(DownX, DownY, Node),
 	    node_hit(X, Y, EndNode),
-            Node =.. [_, ID, _, _],
-            EndNode =.. [_, EndID, _, _],
+            Node =.. [_, ID, _, _, _],
+            EndNode =.. [_, EndID, _, _, _],
             assertz(arc(ID, EndID))
         },
 	rebuild_from_scratch.
 % move case
-broadcast_update(commit(_, DownX, DownY, X, Y, 0)) -->
+broadcast_update(commit(_, _, DownX, DownY, X, Y, 0)) -->
 	{
             number(DownX),
 	    number(DownY),
             node_hit(DownX, DownY, Node),
-            Node =.. [Functor, ID, OldX, OldY],
+            Node =.. [Functor, ID, FillColor, OldX, OldY],
 	    NewX is DownX - OldX + X,
             NewY is DownY - OldY + Y,
-            NNode =.. [Functor, ID, NewX, NewY],
+            NNode =.. [Functor, ID, FillColor, NewX, NewY],
             retractall(node(Node)),
             assertz(node(NNode))
         },
 	rebuild_from_scratch.
 % new case
-broadcast_update(commit(rect, _DownX, _DownY, X, Y, 0)) -->
+broadcast_update(commit(rect, FillColor, _DownX, _DownY, X, Y, 0)) -->
 	{
             number(X),
 	    number(Y),
             gensym(node, ID),
-            assertz(node(rect(ID,X,Y)))
+            assertz(node(rect(ID,FillColor,X,Y)))
         },
-	"ddd.addRect(",
+	"ddd.addRect(\"",
+	FillColor,
+	"\", ",
 	number(X),
 	", ",
 	number(Y),
 	");".
-broadcast_update(commit(oval, _DownX, _DownY, X, Y, 0)) -->
+broadcast_update(commit(oval, FillColor, _DownX, _DownY, X, Y, 0)) -->
 	{
             number(X),
 	    number(Y),
             gensym(node, ID),
-	    assertz(node(oval(ID,X,Y)))
+	    assertz(node(oval(ID,FillColor,X,Y)))
         },
-	"ddd.addOval(",
+	"ddd.addOval(\"",
+	FillColor,
+	"\", ",
 	number(X),
 	", ",
 	number(Y),
 	");".
-broadcast_update(commit(diamond, _DownX, _DownY, X, Y, 0)) -->
+broadcast_update(commit(diamond, FillColor, _DownX, _DownY, X, Y, 0)) -->
 	{
             number(X),
 	    number(Y),
             gensym(node, ID),
-            assertz(node(diamond(ID,X,Y)))
+            assertz(node(diamond(ID,FillColor,X,Y)))
         },
-	"ddd.addDiamond(",
+	"ddd.addDiamond(\"",
+	FillColor,
+	"\", ",
 	number(X),
 	", ",
 	number(Y),
@@ -145,39 +152,45 @@ arc_list([]) --> [].
 arc_list([arc(A,B) | T]) -->
 	{
             node(S),
-            S =.. [_, A, AX, AY],
+            S =.. [_, A, _, AX, AY],
 	    node(E),
-            E =.. [_, B, BX, BY]
+            E =.. [_, B, _, BX, BY]
         },
 	"ddd.ctx().moveTo(",
 	number(AX),
-	",",
+	", ",
 	number(AY),
 	"); ddd.ctx().lineTo(",
 	number(BX),
-	",",
+	", ",
 	number(BY),
 	");",
 	arc_list(T).
 
-joined_update_adds([rect(_ID, X, Y) | T]) -->
-	"ddd.addRect(",
+joined_update_adds([rect(_ID, FillColor, X, Y) | T]) -->
+	"ddd.addRect(\"",
+	FillColor,
+	"\", ",
 	number(X),
-	",",
+	", ",
 	number(Y),
 	");",
 	joined_update_adds(T).
-joined_update_adds([oval(_ID, X, Y) | T]) -->
-	"ddd.addOval(",
+joined_update_adds([oval(_ID, FillColor, X, Y) | T]) -->
+	"ddd.addOval(\"",
+	FillColor,
+	"\", ",
 	number(X),
-	",",
+	", ",
 	number(Y),
 	");",
 	joined_update_adds(T).
-joined_update_adds([diamond(_ID, X, Y) | T]) -->
-	"ddd.addDiamond(",
+joined_update_adds([diamond(_ID, FillColor, X, Y) | T]) -->
+	"ddd.addDiamond(\"",
+	FillColor,
+	"\", ",
 	number(X),
-	",",
+	", ",
 	number(Y),
 	");",
 	joined_update_adds(T).
@@ -195,15 +208,20 @@ diagrammer -->
            http_absolute_location(img('text.png'), TextLoc, [])
         },
 	html_requires(css('diagrammer.css')),
+	html_requires(css('colorPicker.css')),
 	html_requires(js('jquery-2.0.3.min.js')),
+	html_requires(js('jquery.colorPicker.min.js')),
 	html([
 	       div(id(diagrammer), [
 		   div([class(componentbar)], [
 			   img([id(rect_tool), src(RectLoc)]),
 			   img([class(selected), id(oval_tool), src(OvalLoc)]),
 			   img([id(diamond_tool), src(DiamondLoc)]),
-			   img([id(text_tool), src(TextLoc)])
-		       ]),
+			   img([id(text_tool), src(TextLoc)]),
+			   div([ label(for=colorpicker, "Color"),
+			         input([ id=colorpicker,
+			                 type=text,
+			                 value="#333399" ]) ]) ]),
 		   div([class('canvas-container')], [
 		       canvas([class(drawarea),
 			   width('1000'), height('612')], []),
@@ -220,29 +238,36 @@ diagrammer -->
 %
 %	Generate the JavaScript  that  establishes   the  websocket  and
 %	handles events on the websocket.
+%   Also initialize the color picker
+%   from https://github.com/laktek/really-simple-color-picker
 
 script -->
 	html_requires(js('diagrammer.js')),
-	{ http_link_to_id(chat_websocket, [], WebSocketURL)
-	},
+	{ http_link_to_id(chat_websocket, [], WebSocketURL) },
 	js_script({|javascript(WebSocketURL)||
 $(document).ready(function() {
     ws_initialize(WebSocketURL);
+    $('#colorpicker').colorPicker({
+        onColorChange: function(id, newValue) {
+            ddd.currentColor = newValue;
+        },
+        pickerDefault: "#333399"
+    });
 });
 		  |}).
 
 
-node_hit(X, Y, rect(ID, RX, RY)) :-
-	node(rect(ID, RX, RY)),
+node_hit(X, Y, rect(ID, FillColor, RX, RY)) :-
+	node(rect(ID, FillColor, RX, RY)),
 	X >= RX - 50,
 	X =< RX + 50,
 	Y >= RY - 37.5,
 	Y =< RY + 37.5.
-node_hit(X, Y, diamond(ID, RX, RY)) :-
-	node(diamond(ID, RX, RY)),
+node_hit(X, Y, diamond(ID, FillColor, RX, RY)) :-
+	node(diamond(ID, FillColor, RX, RY)),
 	DX is abs(X - RX),
 	DY is abs(Y - RY),
 	DY < 37.5 - DX * 37.5 / 50.0.
-node_hit(X, Y, oval(ID, RX, RY)) :-
-	node(oval(ID, RX, RY)),
+node_hit(X, Y, oval(ID, FillColor, RX, RY)) :-
+	node(oval(ID, FillColor, RX, RY)),
 	37.5 * 37.5 > (X - RX)*(X - RX) + (Y - RY)*(Y - RY).
