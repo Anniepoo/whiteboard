@@ -61,27 +61,51 @@ handle_message(Message, _Room) :-
 handle_message(Message, _Room) :-
 	debug(chat, 'Ignoring message ~p', [Message]).
 
+% delete case
+broadcast_update(commit(kill, _, _, _, X, Y, 0)) -->
+    {
+            number(X),
+            number(Y),
+            node_hit(X, Y, Node),
+            Node =.. [_, ID, _, _, _],
+            retractall(node(Node)),
+            retractall(arc(ID,_)),
+            retractall(arc(_,ID))
+        },
+	rebuild_from_scratch.
 % arc draw case
 broadcast_update(commit(_, _, DownX, DownY, X, Y, 2)) -->
 	{
             number(DownX),
-	    number(DownY),
+            number(DownY),
             node_hit(DownX, DownY, Node),
-	    node_hit(X, Y, EndNode),
+            node_hit(X, Y, EndNode),
             Node =.. [_, ID, _, _, _],
             EndNode =.. [_, EndID, _, _, _],
             assertz(arc(ID, EndID))
         },
 	rebuild_from_scratch.
+% change existing node case
+broadcast_update(commit(Shape, FillColor, X, Y, X, Y, 0)) -->
+    {
+            number(X),
+            number(Y),
+            node_hit(X, Y, Node),
+            Node =.. [_, ID, _, NodeX, NodeY],
+            NNode =.. [Shape, ID, FillColor, NodeX, NodeY],
+            retractall(node(Node)),
+            assertz(node(NNode))
+        },
+	rebuild_from_scratch.
 % move case
 broadcast_update(commit(_, _, DownX, DownY, X, Y, 0)) -->
-	{
+    {
             number(DownX),
-	    number(DownY),
+            number(DownY),
             node_hit(DownX, DownY, Node),
             Node =.. [Functor, ID, FillColor, OldX, OldY],
-	    NewX is DownX - OldX + X,
-            NewY is DownY - OldY + Y,
+            NewX is OldX + X - DownX,
+            NewY is OldY + Y - DownY,
             NNode =.. [Functor, ID, FillColor, NewX, NewY],
             retractall(node(Node)),
             assertz(node(NNode))
@@ -91,7 +115,7 @@ broadcast_update(commit(_, _, DownX, DownY, X, Y, 0)) -->
 broadcast_update(commit(rect, FillColor, _DownX, _DownY, X, Y, 0)) -->
 	{
             number(X),
-	    number(Y),
+            number(Y),
             gensym(node, ID),
             assertz(node(rect(ID,FillColor,X,Y)))
         },
@@ -105,9 +129,9 @@ broadcast_update(commit(rect, FillColor, _DownX, _DownY, X, Y, 0)) -->
 broadcast_update(commit(oval, FillColor, _DownX, _DownY, X, Y, 0)) -->
 	{
             number(X),
-	    number(Y),
+            number(Y),
             gensym(node, ID),
-	    assertz(node(oval(ID,FillColor,X,Y)))
+            assertz(node(oval(ID,FillColor,X,Y)))
         },
 	"ddd.addOval(\"",
 	FillColor,
@@ -119,7 +143,7 @@ broadcast_update(commit(oval, FillColor, _DownX, _DownY, X, Y, 0)) -->
 broadcast_update(commit(diamond, FillColor, _DownX, _DownY, X, Y, 0)) -->
 	{
             number(X),
-	    number(Y),
+            number(Y),
             gensym(node, ID),
             assertz(node(diamond(ID,FillColor,X,Y)))
         },
@@ -153,7 +177,7 @@ arc_list([arc(A,B) | T]) -->
 	{
             node(S),
             S =.. [_, A, _, AX, AY],
-	    node(E),
+            node(E),
             E =.. [_, B, _, BX, BY]
         },
 	"ddd.ctx().moveTo(",
@@ -202,10 +226,11 @@ joined_update_adds([]) --> [].
 %
 diagrammer -->
 	{
-           http_absolute_location(img('rect.png'), RectLoc, []),
-	   http_absolute_location(img('oval.png'), OvalLoc, []),
-           http_absolute_location(img('diamond.png'), DiamondLoc, []),
-           http_absolute_location(img('text.png'), TextLoc, [])
+            http_absolute_location(img('rect.png'), RectLoc, []),
+            http_absolute_location(img('oval.png'), OvalLoc, []),
+            http_absolute_location(img('diamond.png'), DiamondLoc, []),
+            http_absolute_location(img('text.png'), TextLoc, []),
+            http_absolute_location(img('kill.png'), KillLoc, [])
         },
 	html_requires(css('diagrammer.css')),
 	html_requires(css('colorPicker.css')),
@@ -217,7 +242,8 @@ diagrammer -->
 			   img([id(rect_tool), src(RectLoc)]),
 			   img([class(selected), id(oval_tool), src(OvalLoc)]),
 			   img([id(diamond_tool), src(DiamondLoc)]),
-			   img([id(text_tool), src(TextLoc)]),
+               img([id(text_tool), src(TextLoc)]),
+               img([id(kill_tool), src(KillLoc)]),
 			   div([ label(for=colorpicker, "Color"),
 			         input([ id=colorpicker,
 			                 type=text,
