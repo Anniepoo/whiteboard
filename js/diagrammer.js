@@ -134,7 +134,7 @@ var ws_initialize = function(WebSocketURL) {
 		}
 	};
 
-	var tools = ["rect", "oval", "diamond", "text"];
+	var tools = ["rect", "oval", "diamond", "text", "kill"];
 
 	function make_mouseup(name) {
 		return function() {

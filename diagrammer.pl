@@ -61,6 +61,18 @@ handle_message(Message, _Room) :-
 handle_message(Message, _Room) :-
 	debug(chat, 'Ignoring message ~p', [Message]).
 
+% delete case
+broadcast_update(commit(kill, _, _, _, X, Y, 0)) -->
+    {
+            number(X),
+            number(Y),
+            node_hit(X, Y, Node),
+            Node =.. [_, ID, _, _, _],
+            retractall(node(Node)),
+            retractall(arc(ID,_)),
+            retractall(arc(_,ID))
+        },
+	rebuild_from_scratch.
 % arc draw case
 broadcast_update(commit(_, _, DownX, DownY, X, Y, 2)) -->
 	{
@@ -71,6 +83,18 @@ broadcast_update(commit(_, _, DownX, DownY, X, Y, 2)) -->
             Node =.. [_, ID, _, _, _],
             EndNode =.. [_, EndID, _, _, _],
             assertz(arc(ID, EndID))
+        },
+	rebuild_from_scratch.
+% change existing node case
+broadcast_update(commit(Shape, FillColor, X, Y, X, Y, 0)) -->
+    {
+            number(X),
+            number(Y),
+            node_hit(X, Y, Node),
+            Node =.. [_, ID, _, NodeX, NodeY],
+            NNode =.. [Shape, ID, FillColor, NodeX, NodeY],
+            retractall(node(Node)),
+            assertz(node(NNode))
         },
 	rebuild_from_scratch.
 % move case
@@ -205,7 +229,8 @@ diagrammer -->
             http_absolute_location(img('rect.png'), RectLoc, []),
             http_absolute_location(img('oval.png'), OvalLoc, []),
             http_absolute_location(img('diamond.png'), DiamondLoc, []),
-            http_absolute_location(img('text.png'), TextLoc, [])
+            http_absolute_location(img('text.png'), TextLoc, []),
+            http_absolute_location(img('kill.png'), KillLoc, [])
         },
 	html_requires(css('diagrammer.css')),
 	html_requires(css('colorPicker.css')),
@@ -217,7 +242,8 @@ diagrammer -->
 			   img([id(rect_tool), src(RectLoc)]),
 			   img([class(selected), id(oval_tool), src(OvalLoc)]),
 			   img([id(diamond_tool), src(DiamondLoc)]),
-			   img([id(text_tool), src(TextLoc)]),
+               img([id(text_tool), src(TextLoc)]),
+               img([id(kill_tool), src(KillLoc)]),
 			   div([ label(for=colorpicker, "Color"),
 			         input([ id=colorpicker,
 			                 type=text,
