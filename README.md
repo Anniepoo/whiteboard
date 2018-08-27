@@ -49,4 +49,4 @@ demo program will than be added as a demo application.
 
  * Anne Ogborn (Anniepoo) initial code
  * Craig Allen (cjallen88) fill color and picker
-
+ * Brian Rogers (brog45) fix math around moving shapes
